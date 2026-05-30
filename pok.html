@@ -1,0 +1,807 @@
+یک فایل HTML کامل، خودکفا و آماده اجرا برای شما آماده کردم که تمام مشخصات خواسته شده را پیاده‌سازی می‌کند. این فایل را با نام inventory.html ذخیره کرده و در مرورگر خود باز کنید.
+
+```html
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>مدیریت انبار | نسخه نهایی</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Vazirmatn Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #b8860b;
+      --primary-light: #f0c75e;
+      --bg-dark: #0f0f1e;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f0e6d3;
+      --text-secondary: #a09880;
+    }
+
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background: linear-gradient(135deg, #0f0f1e, #1a1a35, #0f0f1e);
+      color: var(--text-main);
+      min-height: 100vh;
+      margin: 0;
+      transition: all 0.3s ease;
+    }
+
+    /* ذرات طلایی */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .particle {
+      position: absolute;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(184, 134, 11, 0.5);
+      animation: floatUp 8s infinite ease-in-out;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) scale(0); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+    }
+
+    /* کارت شیشه‌ای */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.5), 0 0 30px rgba(184, 134, 11, 0.3);
+      border-color: rgba(184, 134, 11, 0.4);
+    }
+
+    /* دکمه طلایی */
+    .btn-gold {
+      background: linear-gradient(135deg, #b8860b, #8b6508);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Vazirmatn', sans-serif;
+      transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(184, 134, 11, 0.4);
+    }
+    .btn-gold:hover {
+      background: linear-gradient(135deg, #d4a017, #b8860b);
+      box-shadow: 0 8px 25px rgba(184, 134, 11, 0.6);
+      transform: scale(1.03);
+    }
+
+    /* اینپوت */
+    .glass-input {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 0.7rem;
+      color: white;
+      width: 100%;
+      font-family: 'Vazirmatn', sans-serif;
+      transition: 0.3s;
+    }
+    .glass-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(184, 134, 11, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* دراور */
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 280px;
+      height: 100vh;
+      background: rgba(15, 15, 30, 0.98);
+      backdrop-filter: blur(25px);
+      border-left: 1px solid rgba(184, 134, 11, 0.3);
+      z-index: 100;
+      transition: right 0.3s ease;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+    .drawer.open {
+      right: 0;
+    }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 99;
+      display: none;
+    }
+    .overlay.show {
+      display: block;
+    }
+
+    /* مودال */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: rgba(30, 30, 60, 0.95);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(184, 134, 11, 0.3);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    /* اسپلش */
+    .splash {
+      position: fixed;
+      inset: 0;
+      background: #0f0f1e;
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    /* ریسپانسیو */
+    @media (max-width: 768px) {
+      .grid-2col {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ذرات -->
+  <div class="particles" id="particlesContainer"></div>
+
+  <!-- اسپلش اسکرین -->
+  <div class="splash" id="splashScreen">
+    <div class="glass-card" style="text-align: center;">
+      <div style="font-size: 4rem;">⚜️</div>
+      <h1 style="color: #b8860b; margin: 1rem 0;">مدیریت انبار</h1>
+      <p id="splashMessage" style="color: #a09880; margin-bottom: 1rem;">در حال بارگذاری...</p>
+      <div style="height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; overflow: hidden;">
+        <div id="splashBar" style="width: 0%; height: 100%; background: #b8860b; transition: width 0.3s;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- هدر -->
+  <header style="position: sticky; top: 0; z-index: 50; background: rgba(15,15,30,0.8); backdrop-filter: blur(20px); padding: 1rem; border-bottom: 1px solid rgba(184,134,11,0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: auto;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button onclick="toggleDrawer()" style="background: none; border: none; color: #b8860b; font-size: 1.8rem; cursor: pointer;">☰</button>
+        <span style="font-weight: 900; color: #b8860b; font-size: 1.3rem;">⚜️ مدیریت انبار</span>
+      </div>
+      <div id="headerDateTime" style="color: #a09880;"></div>
+    </div>
+  </header>
+
+  <!-- اوورلی دراور -->
+  <div class="overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- دراور -->
+  <div class="drawer" id="drawer">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div style="font-size: 3rem;">⚜️</div>
+      <h3 id="drawerUser" style="color: #b8860b;"></h3>
+      <small id="drawerRole" style="color: #a09880;"></small>
+    </div>
+    <nav style="display: flex; flex-direction: column; gap: 0.3rem;">
+      <a href="#" onclick="navigate('home')" class="nav-link">🏠 خانه</a>
+      <a href="#" onclick="navigate('products')" class="nav-link">📦 محصولات</a>
+      <a href="#" id="navShops" onclick="navigate('shops')" class="nav-link" style="display:none;">🏪 فروشگاه‌ها</a>
+      <a href="#" id="navUsers" onclick="navigate('users')" class="nav-link" style="display:none;">👥 کاربران</a>
+      <a href="#" onclick="navigate('messages')" class="nav-link">✉️ پیام‌ها</a>
+      <a href="#" onclick="navigate('settings')" class="nav-link">⚙️ تنظیمات</a>
+      <a href="#" onclick="navigate('about')" class="nav-link">ℹ️ درباره</a>
+      <a href="#" onclick="logout()" class="nav-link" style="color: #ff6b6b;">🚪 خروج</a>
+    </nav>
+  </div>
+
+  <style>
+    .nav-link {
+      color: #f0e6d3;
+      text-decoration: none;
+      padding: 0.7rem 1rem;
+      border-radius: 10px;
+      transition: 0.2s;
+      display: block;
+    }
+    .nav-link:hover {
+      background: rgba(184, 134, 11, 0.2);
+      color: #b8860b;
+    }
+  </style>
+
+  <!-- محتوا -->
+  <main id="app" style="max-width: 1200px; margin: 2rem auto; padding: 0 1rem;"></main>
+
+  <!-- مودال -->
+  <div class="modal" id="modal">
+    <div class="modal-content" id="modalBody"></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" style="position:fixed; bottom:20px; left:20px; background:black; color:white; padding:1rem; border-radius:12px; z-index:250; display:none; border:1px solid #b8860b;"></div>
+
+  <script>
+    // ================== دیتابیس اولیه ==================
+    function initDB() {
+      if (!localStorage.getItem('usersDB')) localStorage.setItem('usersDB', JSON.stringify([
+        { id: '1', username: 'admin', password: '1234', role: 'admin', canAddProduct: true },
+        { id: '2', username: 'user', password: '123', role: 'user', canAddProduct: false }
+      ]));
+      if (!localStorage.getItem('productsDB')) localStorage.setItem('productsDB', '[]');
+      if (!localStorage.getItem('shopsDB')) localStorage.setItem('shopsDB', '[]');
+      if (!localStorage.getItem('messagesDB')) localStorage.setItem('messagesDB', '[]');
+      if (!localStorage.getItem('settings')) localStorage.setItem('settings', JSON.stringify({
+        primaryColor: '#b8860b',
+        font: 'Vazirmatn',
+        logo: '',
+        welcomeMessages: ['خوش آمدید!', 'روز بخیر', 'مدیریت هوشمند']
+      }));
+    }
+    initDB();
+
+    // ================== توابع کمکی ==================
+    const getDB = key => JSON.parse(localStorage.getItem(key) || '[]');
+    const setDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+    const getSettings = () => JSON.parse(localStorage.getItem('settings'));
+    const updateSettings = obj => { const s = getSettings(); Object.assign(s, obj); localStorage.setItem('settings', JSON.stringify(s)); };
+    const genId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const persianDate = (d = new Date()) => new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    const persianDateTime = (d = new Date()) => new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d);
+
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      t.style.borderColor = type === 'error' ? '#ff4444' : type === 'success' ? '#4ade80' : '#b8860b';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // ================== حالت برنامه ==================
+    let currentUser = null;
+    let currentPage = 'login';
+
+    // ================== احراز هویت ==================
+    function login(username, password, role) {
+      const users = getDB('usersDB');
+      const user = users.find(u => u.username === username && u.password === password && u.role === role);
+      if (!user) { showToast('نام کاربری یا رمز عبور اشتباه است', 'error'); return false; }
+      currentUser = user;
+      updateDrawer();
+      navigate('home');
+      showToast(`خوش آمدید ${user.username}`, 'success');
+      return true;
+    }
+
+    function logout() {
+      currentUser = null;
+      navigate('login');
+      closeDrawer();
+    }
+
+    function updateDrawer() {
+      document.getElementById('drawerUser').textContent = currentUser?.username || '';
+      document.getElementById('drawerRole').textContent = currentUser?.role === 'admin' ? 'مدیر' : 'کاربر';
+      document.getElementById('navShops').style.display = currentUser?.role === 'admin' ? 'block' : 'none';
+      document.getElementById('navUsers').style.display = currentUser?.role === 'admin' ? 'block' : 'none';
+    }
+
+    // ================== ناوبری ==================
+    function navigate(page) {
+      currentPage = page;
+      if (!currentUser && page !== 'login') page = 'login';
+      render(page);
+      closeDrawer();
+    }
+
+    function toggleDrawer() {
+      document.getElementById('drawer').classList.toggle('open');
+      document.getElementById('drawerOverlay').classList.toggle('show');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+
+    // ================== رندر صفحات ==================
+    function render(page) {
+      const app = document.getElementById('app');
+      if (page === 'login') renderLogin(app);
+      else if (page === 'home') renderHome(app);
+      else if (page === 'products') renderProducts(app);
+      else if (page === 'shops' && currentUser?.role === 'admin') renderShops(app);
+      else if (page === 'users' && currentUser?.role === 'admin') renderUsers(app);
+      else if (page === 'messages') renderMessages(app);
+      else if (page === 'settings') renderSettings(app);
+      else if (page === 'about') app.innerHTML = `<div class='glass-card'><h2 style='color:#b8860b;'>درباره</h2><p>نسخه ۲.۰</p></div>`;
+      else renderHome(app);
+    }
+
+    // ================== صفحه ورود ==================
+    function renderLogin(app) {
+      app.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; min-height:70vh;">
+          <div class="glass-card" style="width:100%; max-width:400px;">
+            <div style="text-align:center; margin-bottom:1.5rem;">
+              <div style="font-size:4rem;">⚜️</div>
+              <h1 style="color:#b8860b;">ورود</h1>
+            </div>
+            <input id="loginUser" class="glass-input" placeholder="نام کاربری" style="margin-bottom:0.8rem;">
+            <input id="loginPass" type="password" class="glass-input" placeholder="رمز عبور" style="margin-bottom:0.8rem;">
+            <select id="loginRole" class="glass-input" style="margin-bottom:1rem;">
+              <option value="admin">مدیر</option>
+              <option value="user">کاربر عادی</option>
+            </select>
+            <button class="btn-gold" style="width:100%;" onclick="handleLogin()">✨ ورود</button>
+            <p style="color:#a09880; text-align:center; margin-top:1rem; font-size:0.8rem;">admin / 1234 | user / 123</p>
+          </div>
+        </div>`;
+    }
+
+    function handleLogin() {
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value.trim();
+      const r = document.getElementById('loginRole').value;
+      if (!u || !p) { showToast('فیلدها را پر کنید', 'error'); return; }
+      login(u, p, r);
+    }
+
+    // ================== خانه ==================
+    function renderHome(app) {
+      const prods = getDB('productsDB').filter(p => !p.hidden);
+      const shops = getDB('shopsDB').filter(s => !s.hidden);
+      const msgs = getSettings().welcomeMessages;
+      const msg = msgs[Math.floor(Math.random() * msgs.length)];
+      app.innerHTML = `
+        <div class="glass-card" style="margin-bottom:1rem;">
+          <h2 style="color:#b8860b;">✨ ${msg}</h2>
+          <p>${currentUser.username} عزیز، خوش آمدید | ${persianDate()}</p>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:1rem; margin-bottom:1rem;">
+          <div class="glass-card" style="text-align:center;"><h3 style="color:#b8860b;">📦 ${prods.length}</h3><p>محصولات</p></div>
+          <div class="glass-card" style="text-align:center;"><h3 style="color:#4ade80;">✅ ${prods.filter(p=>p.stockStatus==='in stock').length}</h3><p>موجود</p></div>
+          ${currentUser?.role==='admin'?`<div class="glass-card" style="text-align:center;"><h3 style="color:#b8860b;">🏪 ${shops.length}</h3><p>فروشگاه</p></div>`:''}
+        </div>`;
+    }
+
+    // ================== محصولات ==================
+    function renderProducts(app) {
+      const prods = getDB('productsDB').filter(p => !p.hidden);
+      app.innerHTML = `
+        <div class="glass-card" style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+          <input id="searchProd" class="glass-input" placeholder="جستجو..." oninput="filterProds()" style="flex:1; min-width:200px;">
+          <label style="color:#a09880;"><input type="checkbox" id="stockOnly" onchange="filterProds()"> فقط موجود</label>
+          ${currentUser?.role==='admin'?`<button class="btn-gold" onclick="openProductModal()">➕ جدید</button><button class="btn-gold" onclick="showHiddenProds()">👁️ مخفی</button>`:''}
+        </div>
+        <div id="prodGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
+          ${prods.map(p => prodCard(p)).join('')}
+        </div>`;
+      window._prodFilterHidden = false;
+    }
+
+    function prodCard(p) {
+      return `
+        <div class="glass-card">
+          <img src="${p.image || 'https://placehold.co/300x200/333/b8860b?text=📦'}" style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:0.5rem;">
+          <h3>${p.name}</h3>
+          <p style="color:#b8860b;">${Number(p.price).toLocaleString()} ریال</p>
+          <span style="color:${p.stockStatus==='in stock'?'#4ade80':'#ff4444'};">${p.stockStatus==='in stock'?'● موجود':'○ ناموجود'}</span>
+          <p style="color:#a09880; font-size:0.8rem;">📅 ${p.lastUpdate} | 📍 ${p.location||'---'}</p>
+          ${currentUser?.role==='admin'?`
+            <div style="margin-top:0.5rem; display:flex; gap:0.3rem;">
+              <button class="btn-gold" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="openProductModal('${p.id}')">✏️</button>
+              <button class="btn-gold" style="padding:0.3rem 0.6rem; font-size:0.8rem; background:#ff4444;" onclick="deleteProduct('${p.id}')">🗑️</button>
+              <button class="btn-gold" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="hideProduct('${p.id}')">👁️</button>
+            </div>`:''}
+        </div>`;
+    }
+
+    function filterProds() {
+      const q = document.getElementById('searchProd')?.value?.toLowerCase() || '';
+      const stock = document.getElementById('stockOnly')?.checked || false;
+      let prods = getDB('productsDB').filter(p => window._prodFilterHidden ? p.hidden : !p.hidden);
+      if (q) prods = prods.filter(p => p.name.toLowerCase().includes(q) || (p.barcode||'').includes(q));
+      if (stock) prods = prods.filter(p => p.stockStatus === 'in stock');
+      document.getElementById('prodGrid').innerHTML = prods.map(p => prodCard(p)).join('') || '<p style="color:#a09880;">یافت نشد</p>';
+    }
+
+    function openProductModal(id = null) {
+      const p = id ? getDB('productsDB').find(x => x.id === id) : null;
+      document.getElementById('modalBody').innerHTML = `
+        <h2 style="color:#b8860b;">${p?'ویرایش':'محصول جدید'}</h2>
+        <input id="pName" class="glass-input" placeholder="نام *" value="${p?.name||''}" style="margin-top:0.5rem;">
+        <input id="pPrice" type="number" class="glass-input" placeholder="قیمت *" value="${p?.price||''}" style="margin-top:0.5rem;">
+        <input id="pBarcode" class="glass-input" placeholder="بارکد" value="${p?.barcode||''}" style="margin-top:0.5rem;">
+        <input id="pLocation" class="glass-input" placeholder="مکان" value="${p?.location||''}" style="margin-top:0.5rem;">
+        <select id="pStock" class="glass-input" style="margin-top:0.5rem;">
+          <option value="in stock" ${p?.stockStatus==='in stock'?'selected':''}>موجود</option>
+          <option value="out of stock" ${p?.stockStatus==='out of stock'?'selected':''}>ناموجود</option>
+        </select>
+        <input type="file" id="pImage" accept="image/*" class="glass-input" style="margin-top:0.5rem;" onchange="previewImg(this)">
+        <div id="imgPrev" style="margin-top:0.5rem;">${p?.image?`<img src="${p.image}" style="max-width:100px; border-radius:8px;">`:''}</div>
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button class="btn-gold" style="flex:1;" onclick="saveProduct('${p?.id||''}')">💾 ذخیره</button>
+          <button class="btn-gold" style="flex:1; background:#555;" onclick="closeModal()">لغو</button>
+        </div>`;
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function previewImg(input) {
+      if (input.files[0]) {
+        const r = new FileReader();
+        r.onload = e => document.getElementById('imgPrev').innerHTML = `<img src="${e.target.result}" style="max-width:100px; border-radius:8px;">`;
+        r.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function saveProduct(id) {
+      const name = document.getElementById('pName').value.trim();
+      const price = document.getElementById('pPrice').value;
+      if (!name || !price) { showToast('نام و قیمت الزامی است', 'error'); return; }
+      const prods = getDB('productsDB');
+      const imgEl = document.getElementById('imgPrev').querySelector('img');
+      const image = imgEl ? imgEl.src : '';
+      if (id) {
+        const idx = prods.findIndex(p => p.id === id);
+        if (idx > -1) prods[idx] = { ...prods[idx], name, price: +price, barcode: document.getElementById('pBarcode').value, location: document.getElementById('pLocation').value, stockStatus: document.getElementById('pStock').value, image, lastUpdate: persianDate() };
+      } else {
+        prods.push({ id: genId(), name, price: +price, barcode: document.getElementById('pBarcode').value, location: document.getElementById('pLocation').value, stockStatus: document.getElementById('pStock').value, image, hidden: false, lastUpdate: persianDate() });
+      }
+      setDB('productsDB', prods);
+      closeModal();
+      renderProducts(document.getElementById('app'));
+      showToast('ذخیره شد', 'success');
+    }
+
+    function deleteProduct(id) {
+      if (confirm('حذف شود؟')) {
+        setDB('productsDB', getDB('productsDB').filter(p => p.id !== id));
+        renderProducts(document.getElementById('app'));
+        showToast('حذف شد', 'success');
+      }
+    }
+
+    function hideProduct(id) {
+      const prods = getDB('productsDB');
+      const p = prods.find(x => x.id === id);
+      if (p) { p.hidden = !p.hidden; setDB('productsDB', prods); renderProducts(document.getElementById('app')); }
+    }
+
+    function showHiddenProds() {
+      const hidden = getDB('productsDB').filter(p => p.hidden);
+      document.getElementById('modalBody').innerHTML = `
+        <h2 style="color:#b8860b;">محصولات مخفی</h2>
+        ${hidden.map(p => `<div style="display:flex; justify-content:space-between; padding:0.5rem; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:0.3rem;"><span>${p.name}</span><button class="btn-gold" style="padding:0.2rem 0.6rem;" onclick="hideProduct('${p.id}');closeModal();">🔓 نمایش</button></div>`).join('') || '<p>مخفی وجود ندارد</p>'}
+        <button class="btn-gold" style="margin-top:1rem; width:100%;" onclick="closeModal()">بستن</button>`;
+      document.getElementById('modal').classList.add('active');
+    }
+
+    // ================== فروشگاه‌ها (ادمین) ==================
+    function renderShops(app) {
+      const shops = getDB('shopsDB').filter(s => !s.hidden);
+      app.innerHTML = `
+        <div class="glass-card" style="margin-bottom:1rem; display:flex; justify-content:space-between;">
+          <h2 style="color:#b8860b;">🏪 فروشگاه‌ها</h2>
+          <button class="btn-gold" onclick="openShopModal()">➕ جدید</button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:1rem;">
+          ${shops.map(s => `
+            <div class="glass-card">
+              <h3 style="color:#b8860b;">${s.name}</h3>
+              <p>👤 ${s.owner} | 📞 ${s.phone}</p>
+              <p>📍 ${s.address}</p>
+              ${s.social?`<p>📱 ${s.social}</p>`:''}
+              <div style="margin-top:0.5rem; display:flex; gap:0.3rem;">
+                <button class="btn-gold" style="padding:0.3rem 0.6rem;" onclick="openShopModal('${s.id}')">✏️</button>
+                <button class="btn-gold" style="padding:0.3rem 0.6rem; background:#ff4444;" onclick="deleteShop('${s.id}')">🗑️</button>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    function openShopModal(id = null) {
+      const s = id ? getDB('shopsDB').find(x => x.id === id) : null;
+      document.getElementById('modalBody').innerHTML = `
+        <h2 style="color:#b8860b;">${s?'ویرایش':'فروشگاه جدید'}</h2>
+        <input id="sName" class="glass-input" placeholder="نام *" value="${s?.name||''}" style="margin-top:0.5rem;">
+        <input id="sOwner" class="glass-input" placeholder="مالک *" value="${s?.owner||''}" style="margin-top:0.5rem;">
+        <input id="sPhone" class="glass-input" placeholder="تلفن" value="${s?.phone||''}" style="margin-top:0.5rem;">
+        <input id="sAddress" class="glass-input" placeholder="آدرس" value="${s?.address||''}" style="margin-top:0.5rem;">
+        <input id="sSocial" class="glass-input" placeholder="اینستاگرام" value="${s?.social||''}" style="margin-top:0.5rem;">
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button class="btn-gold" style="flex:1;" onclick="saveShop('${s?.id||''}')">💾 ذخیره</button>
+          <button class="btn-gold" style="flex:1; background:#555;" onclick="closeModal()">لغو</button>
+        </div>`;
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function saveShop(id) {
+      const name = document.getElementById('sName').value.trim();
+      const owner = document.getElementById('sOwner').value.trim();
+      if (!name || !owner) { showToast('نام و مالک الزامی است', 'error'); return; }
+      const shops = getDB('shopsDB');
+      const data = { id: id || genId(), name, owner, phone: document.getElementById('sPhone').value, address: document.getElementById('sAddress').value, social: document.getElementById('sSocial').value, hidden: false };
+      if (id) {
+        const idx = shops.findIndex(s => s.id === id);
+        if (idx > -1) shops[idx] = data;
+      } else shops.push(data);
+      setDB('shopsDB', shops);
+      closeModal();
+      renderShops(document.getElementById('app'));
+    }
+
+    function deleteShop(id) {
+      if (confirm('حذف شود؟')) {
+        setDB('shopsDB', getDB('shopsDB').filter(s => s.id !== id));
+        renderShops(document.getElementById('app'));
+      }
+    }
+
+    // ================== پیام‌ها ==================
+    function renderMessages(app) {
+      const all = getDB('messagesDB');
+      const msgs = currentUser.role === 'admin' ? all : all.filter(m => m.from === currentUser.username || m.to === currentUser.username);
+      app.innerHTML = `
+        <div class="glass-card" style="margin-bottom:1rem;"><h2 style="color:#b8860b;">✉️ پیام‌ها</h2></div>
+        ${currentUser.role==='user'?`
+          <div class="glass-card" style="margin-bottom:1rem;">
+            <textarea id="newMsg" class="glass-input" placeholder="پیام به مدیر..."></textarea>
+            <button class="btn-gold" style="margin-top:0.5rem;" onclick="sendMsg()">📤 ارسال</button>
+          </div>`:''}
+        ${msgs.sort((a,b)=>b.id.localeCompare(a.id)).map(m => `
+          <div class="glass-card" style="margin-bottom:0.8rem;">
+            <strong style="color:#b8860b;">${m.from} → ${m.to}</strong>
+            <small style="color:#a09880;">${m.timestamp}</small>
+            <p>${m.text}</p>
+            ${m.replies?.length?`
+              <div style="margin-top:0.5rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.5rem;">
+                ${m.replies.map(r => `<p><strong style="color:#b8860b;">${r.from}:</strong> ${r.text} <small>${r.timestamp}</small></p>`).join('')}
+              </div>`:''}
+            ${currentUser.role==='admin' && m.from!=='admin'?`
+              <textarea id="reply_${m.id}" class="glass-input" placeholder="پاسخ..." style="margin-top:0.5rem;"></textarea>
+              <button class="btn-gold" style="margin-top:0.3rem;" onclick="replyMsg('${m.id}')">↩️ پاسخ</button>`:''}
+          </div>`).join('')}`;
+    }
+
+    function sendMsg() {
+      const text = document.getElementById('newMsg').value.trim();
+      if (!text) { showToast('متن را وارد کنید', 'error'); return; }
+      const msgs = getDB('messagesDB');
+      msgs.push({ id: genId(), from: currentUser.username, to: 'admin', text, timestamp: persianDateTime(), replies: [] });
+      setDB('messagesDB', msgs);
+      renderMessages(document.getElementById('app'));
+    }
+
+    function replyMsg(id) {
+      const text = document.getElementById(`reply_${id}`).value.trim();
+      if (!text) return;
+      const msgs = getDB('messagesDB');
+      const m = msgs.find(x => x.id === id);
+      if (m) { m.replies.push({ from: currentUser.username, text, timestamp: persianDateTime() }); setDB('messagesDB', msgs); renderMessages(document.getElementById('app')); }
+    }
+
+    // ================== کاربران (ادمین) ==================
+    function renderUsers(app) {
+      const users = getDB('usersDB');
+      app.innerHTML = `
+        <div class="glass-card" style="margin-bottom:1rem; display:flex; justify-content:space-between;">
+          <h2 style="color:#b8860b;">👥 کاربران</h2>
+          <button class="btn-gold" onclick="openUserModal()">➕ جدید</button>
+        </div>
+        ${users.map(u => `
+          <div class="glass-card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+            <div><strong>${u.username}</strong> (${u.role}) | افزودن: ${u.canAddProduct?'✅':'❌'}</div>
+            ${u.username!=='admin'?`
+              <div style="display:flex; gap:0.3rem;">
+                <button class="btn-gold" style="padding:0.3rem 0.6rem;" onclick="togglePerm('${u.id}')">🔑</button>
+                <button class="btn-gold" style="padding:0.3rem 0.6rem;" onclick="changePass('${u.id}')">🔒</button>
+                <button class="btn-gold" style="padding:0.3rem 0.6rem; background:#ff4444;" onclick="deleteUser('${u.id}')">🗑️</button>
+              </div>`:'<span>ادمین اصلی</span>'}
+          </div>`).join('')}`;
+    }
+
+    function openUserModal() {
+      document.getElementById('modalBody').innerHTML = `
+        <h2 style="color:#b8860b;">کاربر جدید</h2>
+        <input id="newUsername" class="glass-input" placeholder="نام کاربری" style="margin-top:0.5rem;">
+        <input id="newPassword" type="password" class="glass-input" placeholder="رمز عبور" style="margin-top:0.5rem;">
+        <select id="newRole" class="glass-input" style="margin-top:0.5rem;"><option value="user">کاربر</option><option value="admin">مدیر</option></select>
+        <label style="color:#a09880; margin-top:0.5rem;"><input type="checkbox" id="newPerm"> مجوز افزودن محصول</label>
+        <button class="btn-gold" style="margin-top:1rem; width:100%;" onclick="addUser()">ذخیره</button>`;
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function addUser() {
+      const u = document.getElementById('newUsername').value.trim();
+      const p = document.getElementById('newPassword').value.trim();
+      if (!u || !p) { showToast('فیلدها را پر کنید', 'error'); return; }
+      const users = getDB('usersDB');
+      if (users.find(x => x.username === u)) { showToast('تکراری', 'error'); return; }
+      users.push({ id: genId(), username: u, password: p, role: document.getElementById('newRole').value, canAddProduct: document.getElementById('newPerm').checked });
+      setDB('usersDB', users);
+      closeModal();
+      renderUsers(document.getElementById('app'));
+    }
+
+    function deleteUser(id) {
+      if (confirm('حذف شود؟')) {
+        setDB('usersDB', getDB('usersDB').filter(u => u.id !== id));
+        renderUsers(document.getElementById('app'));
+      }
+    }
+
+    function togglePerm(id) {
+      const users = getDB('usersDB');
+      const u = users.find(x => x.id === id);
+      if (u) { u.canAddProduct = !u.canAddProduct; setDB('usersDB', users); renderUsers(document.getElementById('app')); }
+    }
+
+    function changePass(id) {
+      const pass = prompt('رمز جدید:');
+      if (pass) {
+        const users = getDB('usersDB');
+        const u = users.find(x => x.id === id);
+        if (u) { u.password = pass; setDB('usersDB', users); showToast('رمز تغییر کرد', 'success'); }
+      }
+    }
+
+    // ================== تنظیمات ==================
+    function renderSettings(app) {
+      const s = getSettings();
+      app.innerHTML = `
+        <div class="glass-card">
+          <h2 style="color:#b8860b;">⚙️ تنظیمات</h2>
+          <label style="color:#a09880;">رنگ اصلی:</label>
+          <select id="setColor" class="glass-input" onchange="updateSettings({primaryColor:this.value}); document.documentElement.style.setProperty('--primary', this.value);">
+            <option value="#b8860b" ${s.primaryColor==='#b8860b'?'selected':''}>طلایی</option>
+            <option value="#000080" ${s.primaryColor==='#000080'?'selected':''}>سرمه‌ای</option>
+          </select>
+          <button class="btn-gold" style="margin-top:1rem;" onclick="exportCSV()">📊 Excel</button>
+          <button class="btn-gold" style="margin-top:1rem;" onclick="exportPDF()">📄 PDF</button>
+          ${currentUser?.role==='admin'?`
+            <hr style="margin:1rem 0; border-color:rgba(255,255,255,0.1);">
+            <label>پیام‌های خوش‌آمد:</label>
+            <textarea id="welMsgs" class="glass-input" rows="3">${s.welcomeMessages.join('\n')}</textarea>
+            <button class="btn-gold" onclick="updateSettings({welcomeMessages: document.getElementById('welMsgs').value.split('\n').filter(m=>m.trim())}); showToast('ذخیره شد','success');">💾 ذخیره</button>
+            <button class="btn-gold" style="margin-top:0.5rem;" onclick="backup()">💾 پشتیبان</button>
+            <input type="file" id="restoreInput" accept=".json" style="display:none;" onchange="restore(event)">
+            <button class="btn-gold" onclick="document.getElementById('restoreInput').click()">📂 بازیابی</button>
+            <button class="btn-gold" style="background:#ff4444; margin-top:0.5rem;" onclick="if(confirm('همه چیز حذف شود؟')){localStorage.clear(); location.reload();}">⚠️ بازنشانی</button>
+          `:''}
+        </div>`;
+    }
+
+    function exportCSV() {
+      const prods = getDB('productsDB').filter(p => !p.hidden);
+      let csv = 'نام,قیمت,بارکد,وضعیت,مکان,تاریخ\n';
+      prods.forEach(p => csv += `${p.name},${p.price},${p.barcode||''},${p.stockStatus},${p.location||''},${p.lastUpdate}\n`);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `products_${persianDate()}.csv`; a.click();
+    }
+
+    function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const prods = getDB('productsDB').filter(p => !p.hidden);
+      doc.text('گزارش محصولات', 10, 10);
+      prods.forEach((p, i) => doc.text(`${i+1}. ${p.name} - ${p.price}`, 10, 20 + i * 10));
+      doc.save(`report_${persianDate()}.pdf`);
+    }
+
+    function backup() {
+      const data = { usersDB: getDB('usersDB'), productsDB: getDB('productsDB'), shopsDB: getDB('shopsDB'), messagesDB: getDB('messagesDB'), settings: getSettings() };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup_${persianDate()}.json`; a.click();
+    }
+
+    function restore(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const data = JSON.parse(ev.target.result);
+          setDB('usersDB', data.usersDB);
+          setDB('productsDB', data.productsDB);
+          setDB('shopsDB', data.shopsDB);
+          setDB('messagesDB', data.messagesDB);
+          localStorage.setItem('settings', JSON.stringify(data.settings));
+          location.reload();
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // ================== اجرای اولیه ==================
+    function createParticles() {
+      const container = document.getElementById('particlesContainer');
+      for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = Math.random() * 100 + '%';
+        p.style.width = p.style.height = (Math.random() * 4 + 2) + 'px';
+        p.style.animationDelay = Math.random() * 8 + 's';
+        p.style.animationDuration = (Math.random() * 6 + 4) + 's';
+        container.appendChild(p);
+      }
+    }
+
+    function splash() {
+      const msgs = getSettings().welcomeMessages;
+      document.getElementById('splashMessage').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+      const bar = document.getElementById('splashBar');
+      let w = 0;
+      const int = setInterval(() => {
+        w += 10;
+        bar.style.width = w + '%';
+        if (w >= 100) {
+          clearInterval(int);
+          setTimeout(() => document.getElementById('splashScreen').style.display = 'none', 300);
+        }
+      }, 200);
+    }
+
+    // اجرا
+    createParticles();
+    splash();
+    setInterval(() => document.getElementById('headerDateTime').textContent = persianDateTime(), 60000);
+    document.getElementById('headerDateTime').textContent = persianDateTime();
+    navigate('login');
+  </script>
+</body>
+</html>
